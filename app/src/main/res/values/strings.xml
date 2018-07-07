@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Movie Galore</string>
+
+    <string name="title_popular">Popular</string>
+    <string name="title_top_rated">Top Rated</string>
+    <string name="title_upcoming">Upcoming</string>
+    <string name="title_latest">Latest</string>
+
+    <string name="sample_overview">The first training made available to me in the Plant was centered on safety based on its sensitivity and the nature of hazards, accident or near-miss that abound within the plant premises. Safety first is always our motto in the plant. Hence Personal Protective Equipment [PPE] usage and compliance are daily held with very high esteem. Fig 3.1 is a diagram showing material needed for safety in the Packaging Engineering section. </string>
+</resources>
