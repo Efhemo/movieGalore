@@ -16,7 +16,7 @@ import android.view.ViewGroup;
 
 import com.example.efhemo.platingapp.Database.AppExecutors;
 import com.example.efhemo.platingapp.Model.GenericListItem;
-import com.example.efhemo.platingapp.Model.PopularEntry;
+import com.example.efhemo.platingapp.Model.NowPlaying;
 import com.example.efhemo.platingapp.Utilities.ExtractJson;
 import com.example.efhemo.platingapp.Utilities.NetworkUtils;
 import com.example.efhemo.platingapp.ViewAdapter.AlternateAdapter;
@@ -26,35 +26,30 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PopularFragment extends Fragment implements AlternateAdapter.OnOneClickItem{
+public class NowPlayingFragment extends Fragment implements AlternateAdapter.OnOneClickItem {
 
-    private static final String LOG_TAG = PopularFragment.class.getSimpleName();
+    private static final String LOG_TAG = NowPlayingFragment.class.getSimpleName();
 
-    private static final String CATEGORY = "popular";
-    public static final String INDENTIFICATION = "INDENTIFICATION";
-    public static final String VOTEAVERAGE = "VOTEAVERAGE";
-    public static final String TITLE = "title";
-    public static final String DESCRIPTION = "DESCRIPTION";
-    public static final String INTENT_EXTRAS = "IntentExtras";
-    AlternateAdapter alternateAdapter;
+    private static final String CATEGORY = "now_playing";
+    //ArrayList<String> listMe;
     RecyclerView recyclerView;
-
-    LiveData<List<PopularEntry>> popularEntryList;
-
-    public static final String saveState = "stateKey";
-
+    AlternateAdapter alternateAdapter;
+    LiveData<List<NowPlaying>> nowplayingEntryList;
     private static final int TOTAL_CELLS_ROW = 2;
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setRetainInstance(true);
+    }
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        //super.onCreateView(inflater, container, savedInstanceState);
+        super.onCreateView(inflater, container, savedInstanceState);
+
         View view = inflater.inflate(R.layout.movie_activity_recyclerview, container, false);
 
-
-        //setRetainInstance(true); //This reason i dont want to use retainState is because i
-        // want to handle Another view for landscape and big screen
         recyclerView = view.findViewById(R.id.recyclerview_movie);
         setUpOrientation();
 
@@ -73,6 +68,7 @@ public class PopularFragment extends Fragment implements AlternateAdapter.OnOneC
 
         return view;
     }
+
 
     void setUpOrientation(){
         if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
@@ -111,31 +107,29 @@ public class PopularFragment extends Fragment implements AlternateAdapter.OnOneC
         }
     }
 
-
-
-    //get data from database
+    //get data from database ONCE (viewmode) and observe changes (Livedata)
     private void retrieveTask() {
 
-        //VIEWMODEL works in the worker thread/ OBSERVES DATA CHANGES
+        //VIEWMODEL works in the worker thread and SURVIVE configuration changes (Rotation)
         MainViewModel mainViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
-        popularEntryList = mainViewModel.getTask();
+        nowplayingEntryList = mainViewModel.getTaskNowplaying(); //the Observer is connected to thr data
 
-        popularEntryList.observe(this, new Observer<List<PopularEntry>>() {
+        //LiveData OBSERVES DATA CHANGES, help us not to be re-quering the daabase
+        //(use viewmodel so that new livedata object is not call again due to rotation changes)
+        nowplayingEntryList.observe(this, new Observer<List<NowPlaying>>() { //observe the observer
             @Override
-            public void onChanged(@Nullable List<PopularEntry> popularEntries) {
+            public void onChanged(@Nullable List<NowPlaying> nowplaingEnt) { // Called when the data is changed
 
                 List<GenericListItem> output = new ArrayList<>();
-                if (popularEntries != null) {
-                    output.addAll(popularEntries);
+                if (nowplaingEnt != null) {
+                    output.addAll(nowplaingEnt);
                 }
                 alternateAdapter.setTasks(output);
-                //movieAdapter.setTasks(output);
             }
         });
     }
 
 
-    //best Practices is to do this on a SERVICES
     void extractJsonAnotherThread(){
         AppExecutors.getsInstance().getDiskIO()
                 .execute(new Runnable() {
@@ -144,55 +138,34 @@ public class PopularFragment extends Fragment implements AlternateAdapter.OnOneC
                     @Override
                     public void run() {
                         URL url = NetworkUtils.buildUrl(CATEGORY);
+                        //Log.d(LOG_TAG, "url query is: "+ url.toString());
                         try {
                             networkResponse =  NetworkUtils.getResponseFromHttpUrl(url);
-                            ExtractJson.jsonResponseExtracted(getActivity(), networkResponse);
+                            ExtractJson.jsonResponseExtractedNowplaying(getActivity(), networkResponse);
 
                         } catch (IOException e) {
                             e.printStackTrace();
-
                         }
                     }
                 });
     }
 
 
-    void loadNetworkResult(){
-        new Thread(new Runnable() {
-            String networkResponse;
-            @Override
-            public void run() {
-                URL url = NetworkUtils.buildUrl(CATEGORY);
-                //Log.d(LOG_TAG, "url query is: "+ url.toString());
-                try {
-                    networkResponse =  NetworkUtils.getResponseFromHttpUrl(url);
-                    // ExtractJson.jsonResponseExtracted(getContext(), networkResponse);
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-
-                }
-            }
-        }).start();
-    }
-
 
     @Override
-    public void onOneClick(int position, int ident, double popularityRes,
-                           String backdrop, String poster, String title,
-                           String descript ,String releaseDate) {
-
+    public void onOneClick(int position,
+                           int ident, double voteAverage,
+                           String backdrop, String poster, String title, String descript, String releaseDate) {
         Intent intent = new Intent(getActivity(), DetailActivity.class);
-
         Bundle bundle = new Bundle();
-        bundle.putInt(INDENTIFICATION, ident);
-        bundle.putDouble(VOTEAVERAGE, popularityRes);
-        bundle.putString(TITLE, title);
-        bundle.putString(DESCRIPTION, descript);
+        bundle.putInt(PopularFragment.INDENTIFICATION, ident);
+        bundle.putDouble(PopularFragment.VOTEAVERAGE, voteAverage);
+        bundle.putString(PopularFragment.TITLE, title);
+        bundle.putString(PopularFragment.DESCRIPTION, descript);
         bundle.putString("BACKDROP",backdrop);
         bundle.putString("POSTER", poster);
         bundle.putString("RELEASEDATE", releaseDate);
-        intent.putExtra(INTENT_EXTRAS, bundle);
+        intent.putExtra(PopularFragment.INTENT_EXTRAS, bundle);
         startActivity(intent);
     }
 }

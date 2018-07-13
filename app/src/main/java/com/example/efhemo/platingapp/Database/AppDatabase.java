@@ -6,10 +6,12 @@ import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 import android.util.Log;
 
+import com.example.efhemo.platingapp.Model.NowPlaying;
 import com.example.efhemo.platingapp.Model.PopularEntry;
 import com.example.efhemo.platingapp.Model.TopRatedModel;
+import com.example.efhemo.platingapp.Model.UpcomingModel;
 
-@Database(entities = {PopularEntry.class, TopRatedModel.class}, version = 1, exportSchema = false)
+@Database(entities = {PopularEntry.class, TopRatedModel.class, UpcomingModel.class, NowPlaying.class}, version = 1, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static final String LOG_TAG = AppDatabase.class.getSimpleName();

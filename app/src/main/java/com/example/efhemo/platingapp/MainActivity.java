@@ -5,6 +5,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -21,6 +22,8 @@ public class MainActivity extends AppCompatActivity {
     private Toolbar toolbar;
     BottomNavigationView navigation;
     public static Fragment fragment;
+
+    private static int countFrag = 1;
 
 
     @Override
@@ -40,16 +43,18 @@ public class MainActivity extends AppCompatActivity {
 
         // load the store fragment by default
 
-
         if(savedInstanceState !=null) {
             fragment = getSupportFragmentManager().getFragment(savedInstanceState,"myFragment" );
-            switchFragment(fragment);
+            replaceFragment(fragment);
         }
         else {
             fragment = new PopularFragment();
-            switchFragment(fragment);
+            replaceFragment(fragment);
         }
+
+
     }
+
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
@@ -67,48 +72,75 @@ public class MainActivity extends AppCompatActivity {
                 case R.id.popular_movie:
                     //toolbar.setTitle("Popular");
                     fragment = new PopularFragment();
-                    switchFragment(fragment);
-                    return true;
+                    replaceFragment(fragment);
+                    break;
                 case R.id.top_rated_movie:
                     //toolbar.setTitle("Top Rated");
                     fragment = new TopRatedFragment();
-                    switchFragment(fragment);
-                    return true;
+                    replaceFragment(fragment);
+                    break;
                 case R.id.upcoming:
                     //toolbar.setTitle("Upcoming");
                     fragment = new UpcomingFragment();
-                    switchFragment(fragment);
-                    return true;
+                    replaceFragment(fragment);
+                    break;
                 case R.id.latest:
                     //toolbar.setTitle("Latest");
-                    fragment = new LatestFragment();
-                    switchFragment(fragment);
-                    return true;
+                    fragment = new NowPlayingFragment();
+                    replaceFragment(fragment);
+                    break;
             }
 
             return true;
         }
+
+
     };
 
     private void switchFragment(Fragment fragment){
         fragmentTransaction  = getSupportFragmentManager().beginTransaction().addToBackStack(null);
         fragmentTransaction.replace(R.id.fragment_container, fragment);
+        fragmentTransaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);//replace id with this Fragment
         fragmentTransaction.commit();
     }
 
-    /*@Override
-    public void onSaveInstanceState(Bundle savedInstanceState) {
-        super.onSaveInstanceState(savedInstanceState);
-        //If rotation happens, saved the current fragment
-        savedInstanceState.putInt("SelectedItemId", navigation.getSelectedItemId());
+    private void replaceFragment(Fragment fragment){
+        String backStateName = fragment.getClass().getName();
+        FragmentManager manager = getSupportFragmentManager();
+        boolean fragmentPopped = manager.popBackStackImmediate(backStateName, 0);
+        if(!fragmentPopped){
+            FragmentTransaction ft = manager.beginTransaction();
+            ft.replace(R.id.fragment_container, fragment);
+            ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
+            ft.addToBackStack(null);
+            ft.commit();
+        }
     }
 
+    private void replaceFragment1(Fragment fragment){
+        String backStateName = fragment.getClass().getName();
+        FragmentManager manager = getSupportFragmentManager();
+        FragmentManager.BackStackEntry backStackEntry = manager.getBackStackEntryAt(fragment.getId());
+
+        if(backStackEntry != null){
+            manager.popBackStackImmediate(backStateName, 0);
+
+        }
+        FragmentTransaction ft = manager.beginTransaction();
+        ft.replace(R.id.fragment_container, fragment);
+        ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
+        ft.addToBackStack(backStateName);
+        ft.commit();
+    }
+
+
+
     @Override
-    public void onRestoreInstanceState(Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-        int selectedItemId = savedInstanceState.getInt("SelectedItemId");
-        navigation.setSelectedItemId(selectedItemId);
-    }*/
+    public void onBackPressed() {
+        super.onBackPressed();
+        finish();
+    }
+
 
 }
 

@@ -3,6 +3,8 @@ package com.example.efhemo.platingapp;
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
+import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -18,7 +20,6 @@ import com.example.efhemo.platingapp.Model.TopRatedModel;
 import com.example.efhemo.platingapp.Utilities.ExtractJson;
 import com.example.efhemo.platingapp.Utilities.NetworkUtils;
 import com.example.efhemo.platingapp.ViewAdapter.AlternateAdapter;
-import com.example.efhemo.platingapp.ViewAdapter.MovieAdapter;
 
 import java.io.IOException;
 import java.net.URL;
@@ -32,15 +33,15 @@ public class TopRatedFragment extends android.support.v4.app.Fragment
 
     private static final String CATEGORY = "top_rated";
 
-    MovieAdapter adapter;
+
     private AlternateAdapter alternateAdapter;
 
     //LiveData is a DATA HOLDER class that can be observed within a given lifecycle
     LiveData<List<TopRatedModel>> topRatedEntryList;
 
-    private static final String saveState = "stateKey";
+    private static final String saveState2 = "stateKey2";
     private static final int TOTAL_CELLS_ROW = 2;
-
+    private RecyclerView recyclerView;
 
 
     @Nullable
@@ -51,21 +52,8 @@ public class TopRatedFragment extends android.support.v4.app.Fragment
 
         //setRetainInstance(true); //This reason i dont want to use retainState is because i
         // want to handle Another view for landscape and big screen
-        RecyclerView recyclerView = view.findViewById(R.id.recyclerview_movie);
-        GridLayoutManager gridLayoutManager = new GridLayoutManager(getActivity(), TOTAL_CELLS_ROW);
-        gridLayoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
-            @Override
-            public int getSpanSize(int position) {
-
-                int mod = position % 3;
-                if(mod == 2){
-                    return 2;
-                }else {
-                    return 1;
-                }
-            }
-        });
-        recyclerView.setLayoutManager(gridLayoutManager);
+        recyclerView = view.findViewById(R.id.recyclerview_movie);
+        setUpOrientation();
 
         recyclerView.setHasFixedSize(true);
         recyclerView.setSaveEnabled(true);
@@ -81,6 +69,43 @@ public class TopRatedFragment extends android.support.v4.app.Fragment
 
 
         return view;
+    }
+
+    void setUpOrientation(){
+        if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
+
+            GridLayoutManager gridLayoutManager = new GridLayoutManager(getActivity(), 4);
+            gridLayoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+                @Override
+                public int getSpanSize(int position) {
+
+                    int mod = position % 5;
+                    if(mod == 4){
+                        return 4; // span to 4 columns
+                    }else {
+                        return 1;
+                    }
+                }
+            });
+            recyclerView.setLayoutManager(gridLayoutManager);
+
+        }else{
+            GridLayoutManager gridLayoutManager = new GridLayoutManager(getActivity(), TOTAL_CELLS_ROW);
+            gridLayoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+                @Override
+                public int getSpanSize(int position) {
+
+                    int mod = position % 3;
+                    if(mod == 2){
+                        return 2; // span to two columns
+                    }else {
+                        return 1;
+                    }
+                }
+            });
+            recyclerView.setLayoutManager(gridLayoutManager);
+
+        }
     }
 
 
@@ -120,9 +145,6 @@ public class TopRatedFragment extends android.support.v4.app.Fragment
                             networkResponse =  NetworkUtils.getResponseFromHttpUrl(url);
                             ExtractJson.jsonResponseExtractedTop(getActivity(), networkResponse);
 
-                            //TODO: error inserting into topRatedmodel table
-                            /*mDb = AppDatabase.getsInstance(getContext());
-                            mDb.taskDao().insertTopRatedTaskList(topRatedEntr);*/
                         } catch (IOException e) {
                             e.printStackTrace();
 
@@ -132,7 +154,19 @@ public class TopRatedFragment extends android.support.v4.app.Fragment
     }
 
     @Override
-    public void onOneClick(int position, int ident, double popularityRes, String title, String descript) {
-
+    public void onOneClick(int position,
+                           int ident, double voteAverage,
+                           String backdrop, String poster, String title, String descript, String releaseDate) {
+        Intent intent = new Intent(getActivity(), DetailActivity.class);
+        Bundle bundle = new Bundle();
+        bundle.putInt(PopularFragment.INDENTIFICATION, ident);
+        bundle.putDouble(PopularFragment.VOTEAVERAGE,voteAverage);
+        bundle.putString(PopularFragment.TITLE, title);
+        bundle.putString(PopularFragment.DESCRIPTION, descript);
+        bundle.putString("BACKDROP",backdrop);
+        bundle.putString("POSTER", poster);
+        bundle.putString("RELEASEDATE", releaseDate);
+        intent.putExtra(PopularFragment.INTENT_EXTRAS, bundle);
+        startActivity(intent);
     }
 }

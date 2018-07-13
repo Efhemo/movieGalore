@@ -14,7 +14,7 @@ public class NetworkUtils {
 
     private static final String TAG = NetworkUtils.class.getSimpleName();
 
-    private static final String STATIC_MOVIE_URL =
+    public static final String STATIC_MOVIE_URL =
             "https://api.themoviedb.org/3/movie";
 
     /*themoviebd image url: https://image.tmdb.org/t/p/w500/...*/
@@ -48,6 +48,25 @@ public class NetworkUtils {
             return null;
         }
     }
+
+    public static URL buildUrlVideos(String moviewId, String CATEGORY) {
+        Uri videoQuery = Uri.parse(NetworkUtils.STATIC_MOVIE_URL).buildUpon()
+                .appendPath(moviewId)
+                .appendPath(CATEGORY)
+                .appendQueryParameter(PARAMS_API, API)
+                .appendQueryParameter(PARAMS_LANGUAGE, LANGUAGE)
+                .build();
+
+        try {
+            URL videoQueryUrl = new URL(videoQuery.toString());
+            Log.v(TAG, "MY URL: " + videoQueryUrl);
+            return videoQueryUrl;
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 
     public static String getResponseFromHttpUrl(URL url) throws IOException {
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();

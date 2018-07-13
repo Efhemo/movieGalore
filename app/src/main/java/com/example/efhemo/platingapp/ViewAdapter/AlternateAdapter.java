@@ -1,6 +1,7 @@
 package com.example.efhemo.platingapp.ViewAdapter;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,12 +26,13 @@ public class AlternateAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     Context context;
 
     public OnOneClickItem onOneClickItem;
-
+    private int pos;
 
 
     public interface OnOneClickItem{
         void onOneClick(int position,
-                        int ident, double popularityRes, String title, String descript );
+                        int ident, double voteAverage,
+                        String backdrop, String poster, String title, String descript,String releaseDate );
     }
 
     public AlternateAdapter(Context context, OnOneClickItem onOneClickItem) {
@@ -53,14 +55,20 @@ public class AlternateAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
 
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder holder, final int position) {
+    public void onBindViewHolder( RecyclerView.ViewHolder holder, int position) {
 
+        pos = holder.getAdapterPosition();
         int viewtype = getItemViewType(position);
 
         GenericListItem result = mTaskEntries.get(position);
         final String titleResult = result.getTitle();
-        final double popularityRes = result.getPopularity();
+        final double voteAverage = result.getVote_average();
+        final String backdroppath = result.getBackdrop_path();
+        final String posterPathe = result.getPoster_path();
         final int iden = result.getIdent();
+        final String releaseDate = result.getRelease_date();
+
+
         //String popularityResult =  Double.toString(result.getPopularity());
         final String descript = result.getOverview();
         String imageResult = result.getPoster_path();
@@ -71,7 +79,7 @@ public class AlternateAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             holderLarge.textViewDescription.setText(descript);
 
             Glide.with(context).load("https://image.tmdb.org/t/p/w200/"+imageResult)
-                    .centerCrop()
+                    .fitCenter()
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .into(holderLarge.imageViewRight);
         }else {
@@ -79,7 +87,7 @@ public class AlternateAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             holderSmaall.textViewTitle.setText(titleResult);
 
             Glide.with(context).load("https://image.tmdb.org/t/p/w200/"+imageResult)
-                    .centerCrop()
+                    .fitCenter()
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .into(holderSmaall.imageView);
         }
@@ -87,7 +95,8 @@ public class AlternateAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                onOneClickItem.onOneClick(position, iden, popularityRes, titleResult, descript);
+                onOneClickItem.onOneClick(pos, iden, voteAverage,
+                        backdroppath, posterPathe, titleResult, descript, releaseDate);
             }
         });
     }
@@ -108,11 +117,20 @@ public class AlternateAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     @Override
     public int getItemViewType(int position) {
 
-        int mod = position % 3;
-        if(mod == 2){
-            return LARGE_VIEW_TYPE;
+        if(context.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
+            int mod = position % 5;
+            if(mod == 4){
+                return LARGE_VIEW_TYPE;
+            }else {
+                return SMALL_VIEW_TYPE;
+            }
         }else {
-            return SMALL_VIEW_TYPE;
+            int mod = position % 3;
+            if (mod == 2) {
+                return LARGE_VIEW_TYPE;
+            } else {
+                return SMALL_VIEW_TYPE;
+            }
         }
     }
 

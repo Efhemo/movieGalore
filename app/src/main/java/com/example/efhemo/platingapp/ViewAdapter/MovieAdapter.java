@@ -2,6 +2,7 @@ package com.example.efhemo.platingapp.ViewAdapter;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -9,12 +10,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.example.efhemo.platingapp.DetailActivity;
-import com.example.efhemo.platingapp.Model.GenericListItem;
+import com.example.efhemo.platingapp.Model.VidModel;
 import com.example.efhemo.platingapp.R;
 
 import java.util.List;
@@ -24,17 +23,19 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
     private static final String  LOG_TAG = MovieAdapter.class.getSimpleName();
 
 
-    private List<GenericListItem> mTaskEntries;
+    //private List<VidModel> mTaskEntries;
     Context context;
+    private List<VidModel> vidModelList;
 
 
-    public MovieAdapter(Context context){ //watch out next time, this should be public
+    public MovieAdapter(Context context ){ //watch out next time, this should be public
         this.context = context;
     }
 
     @Override
     public MovieViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_movie, parent, false);
+        View view = LayoutInflater.from(context)
+                .inflate(R.layout.video_list_item, parent, false);
         return new MovieViewHolder(view);
     }
 
@@ -42,54 +43,51 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
     @Override
     public void onBindViewHolder(MovieViewHolder holder, int position) {
 
+        VidModel result = vidModelList.get(position);
 
+        String keyResult = result.getKey();
+        String videoname = result.getName();
+        holder.textViewvideoname.setText(videoname);
+        Log.w(LOG_TAG, "keyResult will be "+ keyResult);
 
-        GenericListItem result = mTaskEntries.get(position);
-        String titleResult = result.getTitle();
-        //String popularityResult =  Double.toString(result.getPopularity()) ;
-        String imageResult = result.getPoster_path();
-
-        holder.textViewTitle.setText(titleResult);
-        //holder.textViewPopular.setText(popularityResult);
-
-
-        Glide.with(context).load("https://image.tmdb.org/t/p/w200/"+imageResult)
+        Glide.with(context).load("https://img.youtube.com/vi/"+keyResult+"/0.jpg")
                 .centerCrop()
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .into(holder.imageView);
+                .into(holder.imageViewThumbnail);
+
+        //Toast.makeText(context, keyResult, Toast.LENGTH_SHORT).show();
 
     }
 
     @Override
     public int getItemCount() {
-        if (mTaskEntries == null) {
+        if (vidModelList == null) {
             return 0;
         }
-        return mTaskEntries.size();
+        return vidModelList.size();
     }
 
     /**
      * When data changes, this method updates the list of mTaskEntries
      * and notifies the adapter to use the new values on it
      */
-    public void setTasks(List<GenericListItem> taskEntries) {
-        mTaskEntries = taskEntries;
+    public void setTasks(List<VidModel> taskEnter) {
+        vidModelList = taskEnter;
         notifyDataSetChanged();
     }
 
 
-    public class MovieViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
+    public class MovieViewHolder extends RecyclerView.ViewHolder
+            implements View.OnClickListener{
 
-        TextView textViewTitle;
-        //TextView textViewPopular;
-        ImageView imageView;
+        TextView textViewvideoname;
+        ImageView imageViewThumbnail;
 
 
-        MovieViewHolder(View itemView) {
+        public MovieViewHolder(View itemView) {
             super(itemView);
-            textViewTitle =itemView.findViewById(R.id.text_film);
-            //textViewPopular = itemView.findViewById(R.id.popularity);
-            imageView = itemView.findViewById(R.id.poster_path_image);
+            textViewvideoname =itemView.findViewById(R.id.video_name);
+            imageViewThumbnail = itemView.findViewById(R.id.thumbnail_imageView);
 
             itemView.setOnClickListener(this);
         }
@@ -97,11 +95,11 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
 
         @Override
         public void onClick(View v) {
-            int postion = getAdapterPosition();
-            Log.d(LOG_TAG, "clicked "+ postion);
-            Toast.makeText(context, "clicked: "+postion, Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(context, DetailActivity.class);
-            context.startActivity(intent);
+
+            String videoKey = vidModelList.get(getAdapterPosition()).getKey();
+            context.startActivity(new Intent(Intent.ACTION_VIEW,
+                    Uri.parse("http://www.youtube.com/watch?v="+videoKey+"")));
+            Log.d("Video", "Video Playing...");
         }
     }
 }

@@ -1,5 +1,10 @@
 package com.example.efhemo.platingapp;
 
+import android.arch.lifecycle.LiveData;
+import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProviders;
+import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -10,19 +15,30 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.example.efhemo.platingapp.ViewAdapter.MovieAdapter;
+import com.example.efhemo.platingapp.Database.AppExecutors;
+import com.example.efhemo.platingapp.Model.GenericListItem;
+import com.example.efhemo.platingapp.Model.UpcomingModel;
+import com.example.efhemo.platingapp.Utilities.ExtractJson;
 import com.example.efhemo.platingapp.Utilities.NetworkUtils;
+import com.example.efhemo.platingapp.ViewAdapter.AlternateAdapter;
 
+import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
-public class UpcomingFragment extends Fragment {
+public class UpcomingFragment extends Fragment implements AlternateAdapter.OnOneClickItem {
 
     private static final String LOG_TAG = UpcomingFragment.class.getSimpleName();
 
     private static final String CATEGORY = "upcoming";
-    MovieAdapter movieAdapter;
     //ArrayList<String> listMe;
     RecyclerView recyclerView;
+
+    AlternateAdapter alternateAdapter;
+    private static final int TOTAL_CELLS_ROW = 2;
+    LiveData<List<UpcomingModel>> upcomingEntryList;
+
 
 
 
@@ -36,50 +52,127 @@ public class UpcomingFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.movie_activity_recyclerview, container, false);
+        //setRetainInstance(true); //This reason i dont want to use retainState is because i
+        // want to handle Another view for landscape and big screen
         recyclerView = view.findViewById(R.id.recyclerview_movie);
-        recyclerView.setLayoutManager(new GridLayoutManager(getActivity(), 2));
+        setUpOrientation();
 
         recyclerView.setHasFixedSize(true);
+        recyclerView.setSaveEnabled(true);
+        //loadNetworkResult();
 
-        //getResult();
+        alternateAdapter = new AlternateAdapter(getContext(), this);
+        recyclerView.setAdapter(alternateAdapter);
 
+        //best practices: use services for loading network data to database
+        extractJsonAnotherThread(); //Network and jsonwork
+
+        retrieveTask(); //LiveData doing worker thread, and observing changes to inform the observer
 
         return view;
     }
 
+    void setUpOrientation(){
+        if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
 
-    void getResult(){
-        new Thread(new Runnable() {
-            String networkResponse;
-            @Override
-            public void run() {
-                URL url = NetworkUtils.buildUrl(CATEGORY);
-                //Log.d(LOG_TAG, "url query is: "+ url.toString());
-                /*try {
-                    networkResponse =  NetworkUtils.getResponseFromHttpUrl(url);
+            GridLayoutManager gridLayoutManager = new GridLayoutManager(getActivity(), 4);
+            gridLayoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+                @Override
+                public int getSpanSize(int position) {
 
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            ArrayList<PopularEntry> listMe =  ExtractJson.jsonResponseExtracted(networkResponse);
-                            //Log.d("Popular ResulJson ", arraylist.toString());
-                            movieAdapter = new MovieAdapter(getActivity(), listMe);
-                            recyclerView.setAdapter(movieAdapter);
-                            movieAdapter.notifyDataSetChanged();
-                            //listMe.notifyAll();
-                        }
-                    });
+                    int mod = position % 5;
+                    if(mod == 4){
+                        return 4; // span to 4 columns
+                    }else {
+                        return 1;
+                    }
+                }
+            });
+            recyclerView.setLayoutManager(gridLayoutManager);
 
-                } catch (IOException e) {
-                    e.printStackTrace();
+        }else{
+            GridLayoutManager gridLayoutManager = new GridLayoutManager(getActivity(), TOTAL_CELLS_ROW);
+            gridLayoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+                @Override
+                public int getSpanSize(int position) {
 
-                }*/
+                    int mod = position % 3;
+                    if(mod == 2){
+                        return 2; // span to two columns
+                    }else {
+                        return 1;
+                    }
+                }
+            });
+            recyclerView.setLayoutManager(gridLayoutManager);
 
-
-            }
-
-
-        }).start();
+        }
     }
 
+    //get data from database ONCE (viewmode) and observe changes (Livedata)
+    private void retrieveTask() {
+
+        //VIEWMODEL works in the worker thread and SURVIVE configuration changes (Rotation)
+        MainViewModel mainViewModel = ViewModelProviders.of(this).get(MainViewModel.class);
+        upcomingEntryList = mainViewModel.getTaskUpcoming(); //the Observer is connected to thr data
+
+        //LiveData OBSERVES DATA CHANGES, help us not to be re-quering the daabase
+        //(use viewmodel so that new livedata object is not call again due to rotation changes)
+        upcomingEntryList.observe(this, new Observer<List<UpcomingModel>>() { //observe the observer
+            @Override
+            public void onChanged(@Nullable List<UpcomingModel> upcomingEnt) { // Called when the data is changed
+
+                List<GenericListItem> output = new ArrayList<>();
+                if (upcomingEnt != null) {
+                    output.addAll(upcomingEnt);
+                }
+                alternateAdapter.setTasks(output);
+            }
+        });
+    }
+
+
+
+
+    private void extractJsonAnotherThread(){
+        AppExecutors.getsInstance().getDiskIO()
+                .execute(new Runnable() {
+                    String networkResponse;
+
+                    @Override
+                    public void run() {
+                        URL url = NetworkUtils.buildUrl(CATEGORY);
+                        //Log.d(LOG_TAG, "url query is: "+ url.toString());
+                        try {
+                            networkResponse =  NetworkUtils.getResponseFromHttpUrl(url);
+                            ExtractJson.jsonResponseExtractedUpcoming(getActivity(), networkResponse);
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+
+                        }
+                    }
+                });
+    }
+
+
+
+
+    @Override
+    public void onOneClick(int position,
+                           int ident, double voteAverage,
+                           String backdrop, String poster, String title, String descript, String releaseDate) {
+
+        Intent intent = new Intent(getActivity(), DetailActivity.class);
+        Bundle bundle = new Bundle();
+        bundle.putInt(PopularFragment.INDENTIFICATION, ident);
+        bundle.putDouble(PopularFragment.VOTEAVERAGE, voteAverage);
+        bundle.putString(PopularFragment.TITLE, title);
+        bundle.putString(PopularFragment.DESCRIPTION, descript);
+        bundle.putString("BACKDROP",backdrop);
+        bundle.putString("POSTER", poster);
+        bundle.putString("RELEASEDATE", releaseDate);
+        intent.putExtra(PopularFragment.INTENT_EXTRAS, bundle);
+        startActivity(intent);
+    }
 }

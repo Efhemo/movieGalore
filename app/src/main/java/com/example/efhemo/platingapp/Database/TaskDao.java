@@ -11,8 +11,10 @@ import android.arch.persistence.room.OnConflictStrategy;
 import android.arch.persistence.room.Query;
 import android.arch.persistence.room.Update;
 
+import com.example.efhemo.platingapp.Model.NowPlaying;
 import com.example.efhemo.platingapp.Model.PopularEntry;
 import com.example.efhemo.platingapp.Model.TopRatedModel;
+import com.example.efhemo.platingapp.Model.UpcomingModel;
 
 import java.util.List;
 
@@ -42,6 +44,21 @@ public interface TaskDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insertTopRatedTaskList(TopRatedModel topRatedEntryList);
+
+
+
+    @Query("SELECT * FROM upcoming ORDER BY id DESC")
+    LiveData<List<UpcomingModel>> loadUpComingTask();
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    void insertUpcomingTaskList(UpcomingModel upcomingEntryList);
+
+
+    @Query("SELECT * FROM nowplaying ORDER BY id DESC")
+    LiveData<List<NowPlaying>> loadNowPlayingTask();
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    void insertNowPlayingTaskList(NowPlaying nowPlayingEntryList);
 
 
 }
